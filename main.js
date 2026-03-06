@@ -31,6 +31,14 @@ const GRID_CONFIG = {
     height: -2
 };
 
+const GLASS_CONFIG = {
+    radius: 0.5,      // Ukuran kaca (semakin besar, semakin besar kaca)
+    posX: 0,          // Posisi X
+    posY: 0,        // Posisi Y
+    posZ: 0.22,        // Posisi Z (kedalaman)
+    opacity: 0.4      // Transparansi kaca
+};
+
 // ==========================================
 // 2. SCENE SETUP
 // ==========================================
@@ -40,7 +48,7 @@ scene.background = new THREE.Color(COLORS.background);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.toneMapping = THREE.ReinhardToneMapping; 
+renderer.toneMapping = THREE.ReinhardToneMapping;
 document.body.appendChild(renderer.domElement);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -52,6 +60,8 @@ controls.enableDamping = true;
 // ==========================================
 // 3. DYNAMIC UI DASHBOARD (Canvas Texture)
 // ==========================================
+let dashboardEnabled = true;
+
 const canvas = document.createElement('canvas');
 canvas.width = UI_CONFIG.canvasSize;
 canvas.height = UI_CONFIG.canvasSize;
@@ -64,6 +74,13 @@ dashboardTexture.transformUv = (uv) => {
 };
 
 function updateDashboardData() {
+    if (!dashboardEnabled) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        dashboardTexture.needsUpdate = true;
+        return;
+    }
+    
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const circleRadius = canvas.width / 2 - 60;
@@ -129,14 +146,22 @@ function updateDashboardData() {
 // ==========================================
 const loader = new GLTFLoader();
 
+let model = null;
+let frontGlass = null;
+let dashboardMesh = null;
+let modelAnimationComplete = false;
+let modelScale = 0;
+
 loader.load(
     './vein_id2.glb', 
     (gltf) => {
-        const model = gltf.scene;
+        model = gltf.scene;
+        model.scale.set(0, 0, 0);
         
         model.traverse((child) => {
             if (child.isMesh) {
                 if (child.name === "Glass_display") { 
+                    dashboardMesh = child;
                     child.material = new THREE.MeshStandardMaterial({
                         map: dashboardTexture,
                         emissiveMap: dashboardTexture,
@@ -157,38 +182,30 @@ loader.load(
 
         scene.add(model);
 
-        // Add front glass effect in front of the whole model
-        const bbox = new THREE.Box3().setFromObject(model);
-        const size = new THREE.Vector3();
-        const center = new THREE.Vector3();
-        bbox.getSize(size);
-        bbox.getCenter(center);
-
-        // Circular glass following model silhouette
-        const glassRadius = Math.min(size.x, size.y) * 0.45;
-        const glassGeometry = new THREE.CircleGeometry(glassRadius, 64);
+        const glassGeometry = new THREE.CircleGeometry(GLASS_CONFIG.radius, 64);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x88ffff,
+            color: 0xffffff,
             metalness: 0.0,
             roughness: 0.05,
             transparent: true,
-            opacity: 0.18,
+            opacity: GLASS_CONFIG.opacity,
             transmission: 0.9,
-            thickness: 0.25,
+            thickness: 0.5,
+            ior: 1.5,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.05,
-            side: THREE.DoubleSide
+            clearcoatRoughness: 0.1,
+            reflectivity: 0.9,
+            envMapIntensity: 1.0,
+            side: THREE.DoubleSide,
+            depthWrite: false
         });
 
         const frontGlass = new THREE.Mesh(glassGeometry, glassMaterial);
-        frontGlass.rotation.y = Math.PI;
-        frontGlass.position.set(
-            0,
-            center.y - model.position.y - 0.08,
-            bbox.max.z - center.z - 0.05
-        );
-        model.add(frontGlass);
-
+        frontGlass.position.set(GLASS_CONFIG.posX, GLASS_CONFIG.posY, GLASS_CONFIG.posZ);
+        frontGlass.renderOrder = 999;
+        scene.add(frontGlass);
+        
+        console.log("Glass added to scene at position:", frontGlass.position);
         console.log("Model loaded successfully");
     },
     undefined,
@@ -198,16 +215,28 @@ loader.load(
 // ==========================================
 // 5. LIGHTING SYSTEM
 // ==========================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 10);
+const ambientLight = new THREE.AmbientLight(0xffffff, 15);
 scene.add(ambientLight);
 
-const pointLight = new THREE.PointLight(0xffffff, 25);
+const pointLight = new THREE.PointLight(0xffffff, 30);
 pointLight.position.set(5, 5, 5);
 scene.add(pointLight);
 
-const topLight = new THREE.DirectionalLight(0xffffff, 25);
+const topLight = new THREE.DirectionalLight(0xffffff, 30);
 topLight.position.set(0, 10, 0);
 scene.add(topLight);
+
+const frontLight = new THREE.PointLight(0x88ffff, 10);
+frontLight.position.set(0, 2, 3);
+scene.add(frontLight);
+
+const sideLight1 = new THREE.PointLight(0x39FF14, 5);
+sideLight1.position.set(-3, 1, 2);
+scene.add(sideLight1);
+
+const sideLight2 = new THREE.PointLight(0xFFBF00, 5);
+sideLight2.position.set(3, 1, 2);
+scene.add(sideLight2);
 
 // ==========================================
 // 5. MOVING NEON GRID BACKGROUND
@@ -242,6 +271,19 @@ scene.add(movingGrid);
 function animate() {
     requestAnimationFrame(animate);
     
+    if (!modelAnimationComplete && model) {
+        modelScale += 0.03;
+        if (modelScale >= 1) {
+            modelScale = 1;
+            modelAnimationComplete = true;
+        }
+        
+        const easeOut = 1 - Math.pow(1 - modelScale, 3);
+        model.scale.set(easeOut, easeOut, easeOut);
+        
+        model.position.y = -0.5 * (1 - easeOut);
+    }
+    
     if (Math.random() > 0.97) {
         updateDashboardData();
     }
@@ -265,3 +307,46 @@ window.addEventListener('resize', () => {
 // START
 updateDashboardData();
 animate();
+
+// ==========================================
+// LOADING SCREEN HANDLER
+// ==========================================
+const loadingScreen = document.getElementById('loading-screen');
+
+function startLoadingSequence() {
+    setTimeout(() => {
+        loadingScreen.classList.add('start-animate');
+        
+        setTimeout(() => {
+            loadingScreen.classList.add('fade-out');
+            
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                showToggleButton();
+            }, 800);
+        }, 3000);
+    }, 100);
+}
+
+startLoadingSequence();
+
+// ==========================================
+// DASHBOARD TOGGLE BUTTON
+// ==========================================
+const dashboardToggle = document.getElementById('dashboard-toggle');
+
+function showToggleButton() {
+    dashboardToggle.classList.add('visible');
+}
+
+dashboardToggle.addEventListener('click', () => {
+    dashboardEnabled = !dashboardEnabled;
+    dashboardToggle.textContent = dashboardEnabled ? 'DASHBOARD: ON' : 'DASHBOARD: OFF';
+    dashboardToggle.classList.toggle('active', dashboardEnabled);
+    
+    if (dashboardMesh) {
+        dashboardMesh.visible = dashboardEnabled;
+    }
+    
+    updateDashboardData();
+});
