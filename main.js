@@ -32,11 +32,12 @@ const GRID_CONFIG = {
 };
 
 const GLASS_CONFIG = {
-    radius: 0.5,      
-    posX: 0,         
-    posY: 0,        
-    posZ: 0.22,       
-    opacity: 0.4 
+    diameter: 500,     // Diameter kaca dalam mm
+    thickness: 10.2,  // Tebal kaca dalam mm
+    posX: 0,          // Posisi X
+    posY: 0,          // Posisi Y
+    posZ: 0.08,       // Posisi Z (kedalaman)
+    opacity: 0.4      // Transparansi kaca (0-1)
 };
 
 // ==========================================
@@ -98,7 +99,7 @@ function updateDashboardData() {
     ctx.fillStyle = COLORS.neonGreen;
     ctx.font = `bold 50px ${UI_CONFIG.font}`;
     ctx.textAlign = 'center';
-    ctx.fillText('VEINID // SYSTEM V1.2', centerX, centerY - 280);
+    ctx.fillText('VEINID // SYSTEM V1.3', centerX, centerY - 280);
     ctx.font = `25px ${UI_CONFIG.font}`;
     ctx.fillText('STATUS: MIL-SPEC NOMINAL', centerX, centerY - 240);
 
@@ -153,7 +154,7 @@ let modelAnimationComplete = false;
 let modelScale = 0;
 
 loader.load(
-    './vein_id2.glb', 
+    './vein_id3.glb', 
     (gltf) => {
         model = gltf.scene;
         model.scale.set(0, 0, 0);
@@ -182,7 +183,7 @@ loader.load(
 
         scene.add(model);
 
-        const glassGeometry = new THREE.CircleGeometry(GLASS_CONFIG.radius, 64);
+        const glassGeometry = new THREE.CircleGeometry(GLASS_CONFIG.diameter / 2000, 64);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xccffff,
             metalness: 0.0,
@@ -190,7 +191,7 @@ loader.load(
             transparent: true,
             opacity: GLASS_CONFIG.opacity,
             transmission: 0.7,
-            thickness: 0.2,
+            thickness: GLASS_CONFIG.thickness / 1000,
             clearcoat: 1.0,
             clearcoatRoughness: 0.0,
             side: THREE.DoubleSide,
