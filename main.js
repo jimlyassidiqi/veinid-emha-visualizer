@@ -32,12 +32,12 @@ const GRID_CONFIG = {
 };
 
 const GLASS_CONFIG = {
-    diameter: 500,     // Diameter kaca dalam mm
-    thickness: 10.2,  // Tebal kaca dalam mm
-    posX: 0,          // Posisi X
-    posY: 0,          // Posisi Y
-    posZ: 0.08,       // Posisi Z (kedalaman)
-    opacity: 0.4      // Transparansi kaca (0-1)
+    diameter: 500,     
+    thickness: 10.2,  
+    posX: 0,          
+    posY: 0,          
+    posZ: 0.08,       
+    opacity: 0.4      
 };
 
 // ==========================================
@@ -171,6 +171,20 @@ loader.load(
                         roughness: 0.1,
                         metalness: 1
                     });
+                } else if (child.name.toLowerCase().includes("glass") || child.name.toLowerCase().includes("cover")) {
+                    child.material = new THREE.MeshPhysicalMaterial({
+                        color: 0xccffff,
+                        metalness: 0.0,
+                        roughness: 0.0,
+                        transparent: true,
+                        opacity: 0.3,
+                        transmission: 0.9,
+                        thickness: GLASS_CONFIG.thickness / 1,
+                        clearcoat: 1.0,
+                        clearcoatRoughness: 0.0,
+                        side: THREE.DoubleSide,
+                        depthWrite: false
+                    });
                 } else {
                     child.material = new THREE.MeshStandardMaterial({
                         color: 0x1a1a1a,
@@ -201,7 +215,7 @@ loader.load(
         const frontGlass = new THREE.Mesh(glassGeometry, glassMaterial);
         frontGlass.position.set(GLASS_CONFIG.posX, GLASS_CONFIG.posY, GLASS_CONFIG.posZ);
         frontGlass.renderOrder = 999;
-        scene.add(frontGlass);
+        model.add(frontGlass);
         
         console.log("Glass added to scene at position:", frontGlass.position);
         console.log("Model loaded successfully");
@@ -213,20 +227,36 @@ loader.load(
 // ==========================================
 // 5. LIGHTING SYSTEM
 // ==========================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 15);
+const ambientLight = new THREE.AmbientLight(0xffffff, 50);
 scene.add(ambientLight);
 
-const pointLight = new THREE.PointLight(0xffffff, 30);
+const pointLight = new THREE.PointLight(0xffffff, 80);
 pointLight.position.set(5, 5, 5);
 scene.add(pointLight);
 
-const topLight = new THREE.DirectionalLight(0xffffff, 30);
+const topLight = new THREE.DirectionalLight(0xffffff, 80);
 topLight.position.set(0, 10, 0);
 scene.add(topLight);
 
-const frontLight = new THREE.PointLight(0x88ffff, 10);
+const frontLight = new THREE.PointLight(0x88ffff, 40);
 frontLight.position.set(0, 2, 3);
 scene.add(frontLight);
+
+const sideLight1 = new THREE.PointLight(0x39FF14, 30);
+sideLight1.position.set(-5, 2, 2);
+scene.add(sideLight1);
+
+const sideLight2 = new THREE.PointLight(0xFFBF00, 30);
+sideLight2.position.set(5, 2, 2);
+scene.add(sideLight2);
+
+const backLight = new THREE.PointLight(0xffffff, 40);
+backLight.position.set(0, 2, -3);
+scene.add(backLight);
+
+const bottomLight = new THREE.PointLight(0x88ffff, 20);
+bottomLight.position.set(0, -3, 2);
+scene.add(bottomLight);
 
 // ==========================================
 // 5. MOVING NEON GRID BACKGROUND
@@ -274,6 +304,10 @@ function animate() {
         model.position.y = -0.5 * (1 - easeOut);
     }
     
+    if (modelAnimationComplete && model) {
+        model.rotation.y += 0.005;
+    }
+    
     if (Math.random() > 0.97) {
         updateDashboardData();
     }
@@ -312,31 +346,9 @@ function startLoadingSequence() {
             
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
-                showToggleButton();
             }, 800);
         }, 3000);
     }, 100);
 }
 
 startLoadingSequence();
-
-// ==========================================
-// DASHBOARD TOGGLE BUTTON
-// ==========================================
-const dashboardToggle = document.getElementById('dashboard-toggle');
-
-function showToggleButton() {
-    dashboardToggle.classList.add('visible');
-}
-
-dashboardToggle.addEventListener('click', () => {
-    dashboardEnabled = !dashboardEnabled;
-    dashboardToggle.textContent = dashboardEnabled ? 'DASHBOARD: ON' : 'DASHBOARD: OFF';
-    dashboardToggle.classList.toggle('active', dashboardEnabled);
-    
-    if (dashboardMesh) {
-        dashboardMesh.visible = dashboardEnabled;
-    }
-    
-    updateDashboardData();
-});
