@@ -32,11 +32,11 @@ const GRID_CONFIG = {
 };
 
 const GLASS_CONFIG = {
-    radius: 0.5,      // Ukuran kaca (semakin besar, semakin besar kaca)
-    posX: 0,          // Posisi X
-    posY: 0,        // Posisi Y
-    posZ: 0.22,        // Posisi Z (kedalaman)
-    opacity: 0.4      // Transparansi kaca
+    radius: 0.5,      
+    posX: 0,         
+    posY: 0,        
+    posZ: 0.22,       
+    opacity: 0.4 
 };
 
 // ==========================================
@@ -184,18 +184,15 @@ loader.load(
 
         const glassGeometry = new THREE.CircleGeometry(GLASS_CONFIG.radius, 64);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
+            color: 0xccffff,
             metalness: 0.0,
-            roughness: 0.05,
+            roughness: 0.0,
             transparent: true,
             opacity: GLASS_CONFIG.opacity,
-            transmission: 0.9,
-            thickness: 0.0102,
-            ior: 1.5,
+            transmission: 0.7,
+            thickness: 0.2,
             clearcoat: 1.0,
-            clearcoatRoughness: 0.1,
-            reflectivity: 0.9,
-            envMapIntensity: 1.0,
+            clearcoatRoughness: 0.0,
             side: THREE.DoubleSide,
             depthWrite: false
         });
@@ -229,14 +226,6 @@ scene.add(topLight);
 const frontLight = new THREE.PointLight(0x88ffff, 10);
 frontLight.position.set(0, 2, 3);
 scene.add(frontLight);
-
-const sideLight1 = new THREE.PointLight(0x39FF14, 5);
-sideLight1.position.set(-3, 1, 2);
-scene.add(sideLight1);
-
-const sideLight2 = new THREE.PointLight(0xFFBF00, 5);
-sideLight2.position.set(3, 1, 2);
-scene.add(sideLight2);
 
 // ==========================================
 // 5. MOVING NEON GRID BACKGROUND
@@ -272,7 +261,7 @@ function animate() {
     requestAnimationFrame(animate);
     
     if (!modelAnimationComplete && model) {
-        modelScale += 0.02;
+        modelScale += 0.03;
         if (modelScale >= 1) {
             modelScale = 1;
             modelAnimationComplete = true;
@@ -281,7 +270,7 @@ function animate() {
         const easeOut = 1 - Math.pow(1 - modelScale, 3);
         model.scale.set(easeOut, easeOut, easeOut);
         
-        model.position.y = -0.2 * (1 - easeOut);
+        model.position.y = -0.5 * (1 - easeOut);
     }
     
     if (Math.random() > 0.97) {
