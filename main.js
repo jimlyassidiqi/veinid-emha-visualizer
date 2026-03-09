@@ -190,7 +190,7 @@ loader.load(
             transparent: true,
             opacity: GLASS_CONFIG.opacity,
             transmission: 0.9,
-            thickness: 0.5,
+            thickness: 0.0102,
             ior: 1.5,
             clearcoat: 1.0,
             clearcoatRoughness: 0.1,
@@ -272,7 +272,7 @@ function animate() {
     requestAnimationFrame(animate);
     
     if (!modelAnimationComplete && model) {
-        modelScale += 0.03;
+        modelScale += 0.02;
         if (modelScale >= 1) {
             modelScale = 1;
             modelAnimationComplete = true;
@@ -281,7 +281,7 @@ function animate() {
         const easeOut = 1 - Math.pow(1 - modelScale, 3);
         model.scale.set(easeOut, easeOut, easeOut);
         
-        model.position.y = -0.5 * (1 - easeOut);
+        model.position.y = -0.2 * (1 - easeOut);
     }
     
     if (Math.random() > 0.97) {
