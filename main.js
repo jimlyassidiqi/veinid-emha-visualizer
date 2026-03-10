@@ -196,6 +196,7 @@ loader.load(
         });
 
         scene.add(model);
+        model.position.z = 0.2;
 
         const glassGeometry = new THREE.CircleGeometry(GLASS_CONFIG.diameter / 2000, 64);
         const glassMaterial = new THREE.MeshPhysicalMaterial({
